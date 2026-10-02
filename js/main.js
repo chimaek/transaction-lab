@@ -1,5 +1,7 @@
 import { scenarios } from "./scenarios.js";
 import { createStage } from "./scene.js";
+import { queries, compareScripts, compareFocus } from "./queries.js";
+import { termsIn } from "./terms.js";
 
 const scenarioList = document.querySelector("#scenario-list");
 const stepList = document.querySelector("#step-list");
@@ -13,6 +15,13 @@ const els = {
   body: document.querySelector("#step-body"),
   codeFold: document.querySelector("#code-fold"),
   code: document.querySelector("#step-code code"),
+  sql: document.querySelector("#step-sql"),
+  sqlLabel: document.querySelector("#sql-label"),
+  termBox: document.querySelector("#term-box"),
+  termList: document.querySelector("#term-list"),
+  compare: document.querySelector("#sql-compare"),
+  compareNote: document.querySelector("#compare-note"),
+  compareSummary: document.querySelector("#compare-summary"),
   callout: document.querySelector("#step-callout"),
   acid: document.querySelector("#acid"),
   caption: document.querySelector("#hud-caption"),
@@ -61,6 +70,9 @@ function renderScenarioButtons() {
     btn.className = `scenario-btn${item.id === scenarioId ? " is-on" : ""}`;
     btn.innerHTML = `<span class="tag ${item.tone}">${item.tag}</span>${item.title}<small>${item.blurb}</small>`;
     btn.addEventListener("click", () => selectScenario(item.id));
+    if (item.id === scenarioId) {
+      queueMicrotask(() => btn.scrollIntoView({ block: "nearest" }));
+    }
     scenarioList.appendChild(btn);
   });
 }
@@ -128,6 +140,47 @@ function renderStep() {
   els.body.textContent = step.body;
   if (stepIndex === 0) els.codeFold.open = false;
   els.code.textContent = step.code;
+  const callText = queries[current.id]?.[stepIndex] || "-- 이 단계에서는 나가는 호출이 없습니다.";
+  els.sql.textContent = callText;
+  els.sqlLabel.textContent = /^\s*(GET|POST|PUT|PATCH|DELETE)\b/m.test(callText)
+    ? "이 단계의 외부 호출"
+    : "이 단계의 SQL";
+  const found = termsIn([step.title, step.plain, step.body, step.callout, step.code, callText].filter(Boolean).join("\n"));
+  els.termBox.hidden = found.length === 0;
+  els.termList.innerHTML = found.map((item) => `
+    <details class="term">
+      <summary>${item.word}</summary>
+      <p>${item.text}</p>
+    </details>
+  `).join("");
+  const external = current.id.startsWith("ext-");
+  const focus = compareFocus[current.id];
+  els.compareSummary.textContent = external
+    ? "장애가 나도 같이 안 죽는 순서"
+    : "전체 쿼리 세 개를 나란히";
+  els.compareNote.textContent = external
+    ? "카드사는 우리가 고칠 수 없습니다. 기다리지 않고, 잠깐이면 같은 결제 키로 다시 시도하고, 계속되면 호출을 끊고, 끊긴 동안은 결제 성공으로 저장하지 않습니다."
+    : "노란 테두리가 이 시나리오가 끝났을 때의 SQL입니다. 문장 순서만 봐도 결과가 왜 다른지 보입니다.";
+  els.compare.innerHTML = external
+    ? [
+        ["1. 타임아웃", "카드사 응답을 무한히 기다리지 않습니다."],
+        ["2. 연결 분리", "카드사 호출이 막혀도 상품 조회용 우리 DB는 남습니다."],
+        ["3. 재시도", "잠깐 오류만, 같은 결제 키로, 횟수를 제한합니다."],
+        ["4. 회로 차단", "계속 실패하면 승인 요청 자체를 멈춥니다."],
+        ["5. 폴백", "승인된 척하지 않고, 잠시 후 다시 시도하라고 알립니다."],
+      ].map(([title, text]) => `
+        <article>
+          <h3>${title}</h3>
+          <p>${text}</p>
+        </article>
+      `).join("")
+    : compareScripts.map((item) => `
+    <article class="${item.id === focus ? "is-on" : ""}">
+      <h3>${item.title}</h3>
+      <p>끝나면 ${item.result}</p>
+      <pre>${item.sql.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>
+    </article>
+  `).join("");
   els.caption.textContent = `${step.name} · ${step.sub}`;
   if (step.callout) {
     els.callout.hidden = false;

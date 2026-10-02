@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>트랜잭션 흐름 랩</title>
+  <title>트랜잭션 흐름 Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=3">
   <script type="importmap">
   {
     "imports": {
@@ -21,19 +21,21 @@
   <div class="app">
     <header class="top">
       <div class="brand">
-        <p class="eyebrow">KDT · 데이터와 스프링 실무</p>
-        <h1>트랜잭션 흐름 랩</h1>
+        <h1>트랜잭션 흐름 <span class="lab"><i></i>Lab</span></h1>
       </div>
       <p class="lede">
-        책 1권을 주문할 때 재고와 주문은 같이 성공하거나 같이 취소되어야 합니다.
-        처음이면 왼쪽 <b>1. 먼저 개념</b> 세 개만 순서대로 보세요. 스프링과 전파는 그 다음입니다.
+        책 한 권 주문으로, 저장과 취소가 어떻게 갈라지는지 단계만 넘겨 보면 됩니다.
+        처음이면 <b>1. 먼저 개념</b>부터 보세요. 카드사처럼 우리 밖 서비스가 멈춰도 서점이 같이 죽지 않는 흐름은 4번입니다.
       </p>
     </header>
 
     <div class="layout">
       <aside class="rail" aria-label="시나리오와 단계">
         <div id="scenario-list" class="scenario-list"></div>
-        <ol id="step-list" class="step-list"></ol>
+        <div class="step-dock">
+          <p class="step-dock-label">이 흐름의 단계</p>
+          <ol id="step-list" class="step-list"></ol>
+        </div>
       </aside>
 
       <main class="stage">
@@ -46,7 +48,7 @@
             <button id="btn-next" type="button">다음</button>
             <button id="btn-reset-view" type="button">시점 초기화</button>
           </div>
-          <p class="hud-help">드래그로 돌리고, 휠로 당기고, 상자를 클릭하면 그 단계로 이동합니다. 방향키로도 단계를 넘길 수 있습니다.</p>
+          <p class="hud-help">드래그로 돌리고, 휠로 확대합니다. 방향키로 단계를 넘깁니다.</p>
         </div>
       </main>
 
@@ -55,9 +57,22 @@
         <h2 id="step-title"></h2>
         <p id="step-plain" class="plain" hidden></p>
         <p id="step-body" class="step-body"></p>
+        <div id="term-box" class="term-box" hidden>
+          <p class="sql-label">지금 나온 말</p>
+          <div id="term-list"></div>
+        </div>
+        <section class="sql-now" aria-label="이 단계의 SQL">
+          <p class="sql-label" id="sql-label">이 단계의 SQL</p>
+          <pre class="step-code"><code id="step-sql"></code></pre>
+        </section>
         <details id="code-fold" class="code-fold">
-          <summary>코드로 보면</summary>
+          <summary>요청·자바 코드와 비교</summary>
           <pre id="step-code" class="step-code"><code></code></pre>
+        </details>
+        <details class="code-fold" id="compare-fold">
+          <summary id="compare-summary">전체 쿼리 세 개를 나란히</summary>
+          <p class="compare-note" id="compare-note"></p>
+          <div class="compare" id="sql-compare"></div>
         </details>
         <p id="step-callout" class="callout" hidden></p>
         <div id="acid" class="acid" aria-label="ACID"></div>

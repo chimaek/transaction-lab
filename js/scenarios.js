@@ -1,4 +1,5 @@
 import { propagationScenarios } from "./propagation.js";
+import { externalDbScenarios } from "./external-db.js";
 
 const stockOk = { committedStock: 10, viewStock: 10, committedOrders: 0, pendingOrders: 0 };
 const stockTemp = { committedStock: 10, viewStock: 9, committedOrders: 0, pendingOrders: 0 };
@@ -471,4 +472,5 @@ export const scenarios = [
     ],
   },
   ...propagationScenarios,
+  ...externalDbScenarios,
 ];

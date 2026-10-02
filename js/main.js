@@ -1,0 +1,206 @@
+import { scenarios } from "./scenarios.js";
+import { createStage } from "./scene.js";
+
+const scenarioList = document.querySelector("#scenario-list");
+const stepList = document.querySelector("#step-list");
+const viewport = document.querySelector("#viewport");
+const stage = createStage(viewport);
+
+const els = {
+  kicker: document.querySelector("#kicker"),
+  title: document.querySelector("#step-title"),
+  body: document.querySelector("#step-body"),
+  code: document.querySelector("#step-code code"),
+  callout: document.querySelector("#step-callout"),
+  acid: document.querySelector("#acid"),
+  caption: document.querySelector("#hud-caption"),
+  prev: document.querySelector("#btn-prev"),
+  next: document.querySelector("#btn-next"),
+  play: document.querySelector("#btn-play"),
+  reset: document.querySelector("#btn-reset-view"),
+  committed: document.querySelector("#stat-committed-stock"),
+  view: document.querySelector("#stat-view-stock"),
+  viewNote: document.querySelector("#stat-view-note"),
+  orders: document.querySelector("#stat-orders"),
+  ordersNote: document.querySelector("#stat-orders-note"),
+  tx: document.querySelector("#stat-tx"),
+  conn: document.querySelector("#stat-conn"),
+};
+
+let scenarioId = scenarios[0].id;
+let stepIndex = 0;
+let playing = false;
+let timer = 0;
+
+const ACID = [
+  ["A", "원자성"],
+  ["C", "일관성"],
+  ["I", "격리"],
+  ["D", "지속성"],
+];
+
+function scenario() {
+  return scenarios.find((item) => item.id === scenarioId);
+}
+
+function renderScenarioButtons() {
+  const groups = [];
+  scenarioList.innerHTML = "";
+  scenarios.forEach((item) => {
+    if (!groups.includes(item.group)) {
+      groups.push(item.group);
+      const label = document.createElement("p");
+      label.className = "group-label";
+      label.textContent = item.group;
+      scenarioList.appendChild(label);
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `scenario-btn${item.id === scenarioId ? " is-on" : ""}`;
+    btn.innerHTML = `<span class="tag ${item.tone}">${item.tag}</span>${item.title}<small>${item.blurb}</small>`;
+    btn.addEventListener("click", () => selectScenario(item.id));
+    scenarioList.appendChild(btn);
+  });
+}
+
+function renderStepButtons() {
+  const steps = scenario().steps;
+  stepList.innerHTML = "";
+  steps.forEach((step, index) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    const cls = index === stepIndex ? "is-now" : index < stepIndex ? "is-done" : "";
+    btn.className = cls;
+    btn.innerHTML = `<b>${index + 1}</b><span>${step.title}</span>`;
+    btn.addEventListener("click", () => go(index, true));
+    if (index === stepIndex) {
+      queueMicrotask(() => btn.scrollIntoView({ block: "nearest", inline: "nearest" }));
+    }
+    li.appendChild(btn);
+    stepList.appendChild(li);
+  });
+}
+
+const defaultStats = [
+  ["확정 재고", "이미 반영된 books.stock"],
+  ["이 요청이 보는 재고", ""],
+  ["주문", "orders 테이블"],
+  ["트랜잭션", ""],
+];
+
+function paintCell(cell, label, value, note, tone) {
+  cell.className = "cell";
+  cell.querySelector("span").textContent = label;
+  cell.querySelector("strong").textContent = value;
+  cell.querySelector("small").textContent = note;
+  if (tone === "hot") cell.classList.add("is-hot");
+  if (tone === "bad") cell.classList.add("is-bad");
+  if (tone === "good") cell.classList.add("is-good");
+}
+
+function paintBoard(step) {
+  const cells = [...document.querySelectorAll(".board .cell")];
+  if (step.stats) {
+    step.stats.forEach((stat, index) => {
+      paintCell(cells[index], stat.label, stat.value, stat.note, stat.tone);
+    });
+    return;
+  }
+  const diverged = step.viewStock !== step.committedStock || step.pendingOrders > 0;
+  const orderValue = step.pendingOrders > 0 ? `임시 ${step.pendingOrders}건` : `${step.committedOrders}건`;
+  const orderNote = step.pendingOrders > 0 ? `확정 주문 ${step.committedOrders}건` : "orders 테이블";
+  paintCell(cells[0], defaultStats[0][0], String(step.committedStock), defaultStats[0][1], step.tone === "ok" ? "good" : "");
+  paintCell(cells[1], defaultStats[1][0], String(step.viewStock), diverged ? "커밋 전에는 밖과 다를 수 있음" : "확정값과 같음", diverged ? "hot" : "");
+  paintCell(cells[2], defaultStats[2][0], orderValue, orderNote, step.tone === "danger" ? "bad" : "");
+  paintCell(cells[3], defaultStats[3][0], step.tx, step.connection, "");
+}
+
+function renderStep() {
+  const current = scenario();
+  const step = current.steps[stepIndex];
+  els.kicker.textContent = `${stepIndex + 1} / ${current.steps.length} · ${current.title}`;
+  els.title.textContent = step.title;
+  els.body.textContent = step.body;
+  els.code.textContent = step.code;
+  els.caption.textContent = `${step.name} · ${step.sub}`;
+  if (step.callout) {
+    els.callout.hidden = false;
+    els.callout.textContent = step.callout;
+    els.callout.className = `callout${step.tone === "danger" ? " is-danger" : ""}`;
+  } else {
+    els.callout.hidden = true;
+  }
+  els.acid.innerHTML = ACID.map(([key, name]) => {
+    const on = step.acid.includes(key) ? " on" : "";
+    return `<i class="${on}" title="${name}">${key}</i>`;
+  }).join("");
+  els.prev.disabled = stepIndex === 0;
+  els.next.disabled = stepIndex === current.steps.length - 1;
+  paintBoard(step);
+  renderStepButtons();
+  stage.focus(stepIndex, step.tone, step.echoBack);
+}
+
+function go(index, pause) {
+  const steps = scenario().steps;
+  stepIndex = Math.max(0, Math.min(steps.length - 1, index));
+  if (pause) stopPlay();
+  renderStep();
+}
+
+function selectScenario(id) {
+  scenarioId = id;
+  stepIndex = 0;
+  stopPlay();
+  stage.setScenario(scenario().steps);
+  renderScenarioButtons();
+  renderStep();
+}
+
+function stopPlay() {
+  playing = false;
+  window.clearTimeout(timer);
+  els.play.textContent = "자동 재생";
+}
+
+function playFromHere() {
+  playing = true;
+  els.play.textContent = "일시정지";
+  const tick = () => {
+    if (!playing) return;
+    const last = scenario().steps.length - 1;
+    if (stepIndex >= last) {
+      stopPlay();
+      return;
+    }
+    go(stepIndex + 1, false);
+    timer = window.setTimeout(tick, 2800);
+  };
+  timer = window.setTimeout(tick, 2800);
+}
+
+els.prev.addEventListener("click", () => go(stepIndex - 1, true));
+els.next.addEventListener("click", () => go(stepIndex + 1, true));
+els.play.addEventListener("click", () => {
+  if (playing) stopPlay();
+  else {
+    if (stepIndex === scenario().steps.length - 1) go(0, false);
+    playFromHere();
+  }
+});
+els.reset.addEventListener("click", () => stage.resetView());
+
+stage.setOnPick((index) => go(index, true));
+
+window.addEventListener("keydown", (event) => {
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+  if (event.key === "ArrowRight") go(stepIndex + 1, true);
+  if (event.key === "ArrowLeft") go(stepIndex - 1, true);
+  if (event.key === " ") {
+    event.preventDefault();
+    els.play.click();
+  }
+});
+
+selectScenario(scenarios[0].id);

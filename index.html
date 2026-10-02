@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>트랜잭션 흐름 랩</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <p class="eyebrow">KDT · 데이터와 스프링 실무</p>
+        <h1>트랜잭션 흐름 랩</h1>
+      </div>
+      <p class="lede">
+        재고 차감과 주문 저장은 둘 다 되거나, 둘 다 취소되어야 합니다.
+        왼쪽에서 기본 흐름을 본 뒤, 전파 속성에서 주문·결제·이력·외부 호출이 어떻게 묶이는지 단계로 넘겨 보세요.
+      </p>
+    </header>
+
+    <div class="layout">
+      <aside class="rail" aria-label="시나리오와 단계">
+        <div id="scenario-list" class="scenario-list"></div>
+        <ol id="step-list" class="step-list"></ol>
+      </aside>
+
+      <main class="stage">
+        <div id="viewport"></div>
+        <div class="hud">
+          <p id="hud-caption" class="hud-caption"></p>
+          <div class="transport" role="group" aria-label="단계 제어">
+            <button id="btn-prev" type="button">이전</button>
+            <button id="btn-play" type="button" class="primary">자동 재생</button>
+            <button id="btn-next" type="button">다음</button>
+            <button id="btn-reset-view" type="button">시점 초기화</button>
+          </div>
+          <p class="hud-help">드래그로 돌리고, 휠로 당기고, 상자를 클릭하면 그 단계로 이동합니다. 방향키로도 단계를 넘길 수 있습니다.</p>
+        </div>
+      </main>
+
+      <aside class="dossier" aria-live="polite">
+        <p id="kicker" class="kicker"></p>
+        <h2 id="step-title"></h2>
+        <p id="step-body" class="step-body"></p>
+        <pre id="step-code" class="step-code"><code></code></pre>
+        <p id="step-callout" class="callout" hidden></p>
+        <div id="acid" class="acid" aria-label="ACID"></div>
+        <details class="acid-note">
+          <summary>ACID를 이 주문 예시에 대입하면</summary>
+          <ul>
+            <li><b>원자성</b> 재고 차감과 주문 저장은 한 묶음입니다. 주문 저장이 실패하면 재고 차감도 사라집니다.</li>
+            <li><b>일관성</b> 재고가 0보다 작아지거나, 주문만 있고 재고는 그대로인 상태를 남기지 않습니다.</li>
+            <li><b>격리</b> 커밋 전에는 다른 손님의 조회에 이 변경이 섞이지 않는 것이 일반적입니다.</li>
+            <li><b>지속성</b> 커밋이 끝나면 애플리케이션이 멈춰도 주문 기록은 데이터베이스에 남습니다.</li>
+          </ul>
+        </details>
+      </aside>
+    </div>
+
+    <footer class="board" aria-label="데이터베이스 상태">
+      <div class="cell">
+        <span>확정 재고</span>
+        <strong id="stat-committed-stock">10</strong>
+        <small>이미 반영된 books.stock</small>
+      </div>
+      <div class="cell">
+        <span>이 요청이 보는 재고</span>
+        <strong id="stat-view-stock">10</strong>
+        <small id="stat-view-note">아직 차이 없음</small>
+      </div>
+      <div class="cell">
+        <span>주문</span>
+        <strong id="stat-orders">0건</strong>
+        <small id="stat-orders-note">orders 테이블</small>
+      </div>
+      <div class="cell">
+        <span>트랜잭션</span>
+        <strong id="stat-tx">없음</strong>
+        <small id="stat-conn">커넥션 대기</small>
+      </div>
+    </footer>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

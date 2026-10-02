@@ -9,7 +9,9 @@ const stage = createStage(viewport);
 const els = {
   kicker: document.querySelector("#kicker"),
   title: document.querySelector("#step-title"),
+  plain: document.querySelector("#step-plain"),
   body: document.querySelector("#step-body"),
+  codeFold: document.querySelector("#code-fold"),
   code: document.querySelector("#step-code code"),
   callout: document.querySelector("#step-callout"),
   acid: document.querySelector("#acid"),
@@ -121,7 +123,10 @@ function renderStep() {
   const step = current.steps[stepIndex];
   els.kicker.textContent = `${stepIndex + 1} / ${current.steps.length} · ${current.title}`;
   els.title.textContent = step.title;
+  els.plain.hidden = !step.plain;
+  els.plain.textContent = step.plain || "";
   els.body.textContent = step.body;
+  if (stepIndex === 0) els.codeFold.open = false;
   els.code.textContent = step.code;
   els.caption.textContent = `${step.name} · ${step.sub}`;
   if (step.callout) {

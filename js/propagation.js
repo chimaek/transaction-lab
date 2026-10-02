@@ -7,7 +7,7 @@ function board(outer, inner, order, tx) {
 }
 
 const base = {
-  group: "전파 속성",
+  group: "3. 메서드를 어떻게 묶을까",
   tone: "work",
 };
 
@@ -15,9 +15,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-required",
-    title: "REQUIRED · 같은 운명",
-    blurb: "결제 실패면 주문도 없어야 할 때. 기본값입니다.",
-    tag: "기본",
+    title: "주문과 결제는 같이 간다",
+    blurb: "결제가 실패하면 주문도 없어야 할 때. 옵션 이름은 REQUIRED, 아무 표시도 안 하면 이것입니다.",
+    tag: "REQUIRED",
     steps: [
       {
         name: "주문 서비스",
@@ -25,6 +25,7 @@ export const propagationScenarios = [
         layer: "spring",
         shape: "box",
         title: "주문이 먼저 트랜잭션을 연다",
+        plain: "주문과 결제는 한 묶음입니다. 결제가 실패하면 재고 감소도 같이 취소됩니다.",
         body: "손님이 책을 주문합니다. OrderService.placeOrder는 @Transactional이고, 전파를 생략하면 REQUIRED입니다. 진행 중인 트랜잭션이 없으니 새 트랜잭션을 엽니다.",
         code: "@Transactional // propagation = REQUIRED\npublic Order placeOrder(Long bookId, int qty) {\n  bookRepository.decreaseStock(bookId, qty);\n  paymentService.charge(bookId, qty);\n  return orderRepository.save(new Order(bookId, qty));\n}",
         stats: board(
@@ -112,9 +113,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-requires-new",
-    title: "REQUIRES_NEW · 기록은 남긴다",
-    blurb: "주문은 롤백돼도 시도 이력은 커밋해야 할 때.",
-    tag: "분리",
+    title: "실패해도 기록은 남긴다",
+    blurb: "주문은 취소돼도 '시도했다'는 이력은 저장해야 할 때. 옵션 이름은 REQUIRES_NEW.",
+    tag: "REQUIRES_NEW",
     tone: "ok",
     steps: [
       {
@@ -123,6 +124,7 @@ export const propagationScenarios = [
         layer: "spring",
         shape: "box",
         title: "주문 트랜잭션 A를 연다",
+        plain: "주문은 실패할 수 있습니다. 그래도 '결제 시도' 기록은 남아야 고객 문의에 답할 수 있습니다.",
         body: "주문 자체는 실패할 수 있습니다. 그래도 ‘누가 언제 결제를 시도했는지’는 남아 있어야 고객 문의에 답할 수 있습니다. 그 이력은 주문과 운명을 같이하면 안 됩니다.",
         code: "@Transactional\npublic Order placeOrder(Long bookId, int qty) {\n  bookRepository.decreaseStock(bookId, qty);\n  auditService.record(bookId, \"결제 시도\");\n  paymentService.charge(bookId, qty);\n}",
         stats: board(
@@ -210,9 +212,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-nested",
-    title: "NESTED · 부가 작업만 취소",
-    blurb: "쿠폰 발급이 실패해도 주문은 살리고 싶을 때.",
-    tag: "부분",
+    title: "쿠폰만 실패해도 주문은 산다",
+    blurb: "부가 작업만 되돌리고 본 주문은 저장할 때. 옵션 이름은 NESTED.",
+    tag: "NESTED",
     steps: [
       {
         name: "주문 Tx",
@@ -220,6 +222,7 @@ export const propagationScenarios = [
         layer: "spring",
         shape: "box",
         title: "주문은 반드시 남기고, 쿠폰은 되면 좋다",
+        plain: "쿠폰 발급이 실패해도 이미 결제된 주문까지 취소하면 안 됩니다.",
         body: "첫 구매 쿠폰은 있으면 좋지만, 쿠폰 발급이 실패했다고 결제된 주문까지 취소하면 안 됩니다. 본 작업과 부가 작업의 실패 범위를 나누는 선택입니다.",
         code: "@Transactional\npublic Order placeOrder(Long bookId, int qty) {\n  Order order = orderRepository.save(new Order(bookId, qty));\n  try {\n    couponService.issueWelcome(order.getId());\n  } catch (RuntimeException ignored) {\n    // 쿠폰만 포기하고 주문은 계속\n  }\n  return order;\n}",
         stats: board(
@@ -308,9 +311,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-not-supported",
-    title: "NOT_SUPPORTED · 바깥 호출",
-    blurb: "카드사 HTTP 때문에 커넥션을 붙잡고 있으면 안 될 때.",
-    tag: "분리",
+    title: "카드사 호출은 묶음 밖으로",
+    blurb: "느린 외부 호출 동안 DB 연결을 붙잡고 있으면 안 될 때. 옵션 이름은 NOT_SUPPORTED.",
+    tag: "NOT_SUPPORTED",
     steps: [
       {
         name: "주문 Tx",
@@ -318,6 +321,7 @@ export const propagationScenarios = [
         layer: "spring",
         shape: "box",
         title: "재고 확인까지는 트랜잭션이 필요하다",
+        plain: "재고를 깎는 동안에는 묶음이 필요합니다. 카드사 응답을 기다리는 1초까지 그 묶음에 넣으면 연결이 묶입니다.",
         body: "재고를 깎는 동안에는 트랜잭션이 있어야 합니다. 다만 카드사 API는 1~2초가 걸릴 수 있습니다. 그 시간 동안 DB 커넥션을 쥐고 있으면 풀이 쉽게 바닥납니다.",
         code: "@Transactional\npublic Order placeOrder(Long bookId, int qty) {\n  bookRepository.decreaseStock(bookId, qty);\n  paymentClient.charge(bookId, qty); // 카드사 HTTP\n  return orderRepository.save(new Order(bookId, qty));\n}",
         stats: board(
@@ -403,9 +407,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-supports",
-    title: "SUPPORTS · 있으면 참여",
-    blurb: "재고 조회는 혼자 있어도 되고, 주문 안에서는 그 트랜잭션을 따라가야 할 때.",
-    tag: "조회",
+    title: "조회는 있으면 같이, 없으면 혼자",
+    blurb: "같은 재고 조회를 상품 화면에서도, 주문 도중에도 쓸 때. 옵션 이름은 SUPPORTS.",
+    tag: "SUPPORTS",
     steps: [
       {
         name: "상품 화면",
@@ -413,6 +417,7 @@ export const propagationScenarios = [
         layer: "web",
         shape: "sphere",
         title: "상품 페이지는 트랜잭션 없이 재고를 묻는다",
+        plain: "상품 화면의 재고 숫자는 주문의 일부가 아닙니다. 묶음을 열지 않고 그냥 읽습니다.",
         body: "목록 화면의 재고 숫자는 주문 처리의 일부가 아닙니다. 트랜잭션을 일부러 열 이유가 없습니다. BookQuery.stock은 SUPPORTS라서, 트랜잭션이 없으면 그냥 SELECT만 합니다.",
         code: "@Transactional(propagation = SUPPORTS, readOnly = true)\npublic int stock(Long bookId) {\n  return bookRepository.getStock(bookId);\n}\n\n// 상품 페이지 → 트랜잭션 없음 → SELECT",
         stats: board(
@@ -482,9 +487,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-mandatory",
-    title: "MANDATORY · 혼자 호출 금지",
-    blurb: "재고 차감이 주문 트랜잭션 없이 실행되면 안 될 때.",
-    tag: "가드",
+    title: "혼자 호출되면 막는다",
+    blurb: "재고 차감이 주문 묶음 없이 실행되면 안 될 때. 옵션 이름은 MANDATORY.",
+    tag: "MANDATORY",
     tone: "danger",
     steps: [
       {
@@ -493,6 +498,7 @@ export const propagationScenarios = [
         layer: "spring",
         shape: "box",
         title: "재고 차감은 반드시 누군가의 트랜잭션 안에 있어야 한다",
+        plain: "재고만 혼자 저장되면, 주문이 실패해도 책이 사라집니다. 그래서 묶음 없이 부르면 아예 막습니다.",
         body: "decreaseStock이 혼자 실행되면 그 한 문장만 바로 확정됩니다. 주문 저장이 실패해도 재고는 이미 줄어 있습니다. 그래서 이 메서드는 주문 트랜잭션에 참여할 때만 허용하고, 혼자 부르면 아예 막습니다.",
         code: "@Transactional(propagation = MANDATORY)\npublic void decreaseStock(Long bookId, int qty) {\n  bookRepository.decrease(bookId, qty);\n}",
         stats: board(
@@ -545,9 +551,9 @@ export const propagationScenarios = [
   {
     ...base,
     id: "prop-never",
-    title: "NEVER · 섞이면 실수",
-    blurb: "무거운 매출 리포트가 주문 트랜잭션에 들어가면 안 될 때.",
-    tag: "가드",
+    title: "주문 안에 끼면 거절한다",
+    blurb: "무거운 매출 조회가 주문 묶음에 들어가면 안 될 때. 옵션 이름은 NEVER.",
+    tag: "NEVER",
     tone: "danger",
     steps: [
       {
@@ -556,6 +562,7 @@ export const propagationScenarios = [
         layer: "spring",
         shape: "box",
         title: "주문 트랜잭션이 재고를 붙잡고 있다",
+        plain: "주문 처리 중에 하루 매출 집계까지 넣으면, 집계가 끝날 때까지 재고 잠금이 안 풀립니다.",
         body: "주문이 진행 중이면 그 트랜잭션은 재고 행을 건드린 뒤라 커밋 전까지 커넥션을 들고 있습니다. 여기에 하루치 매출을 집계하는 무거운 조회가 끼면, 집계가 끝날 때까지 그 커넥션과 잠금이 풀리지 않습니다.",
         code: "@Transactional\npublic Order placeOrder(Long bookId, int qty) {\n  bookRepository.decreaseStock(bookId, qty);\n  reportService.dailySales(); // 실수로 끼어든 호출\n}",
         stats: board(

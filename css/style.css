@@ -268,15 +268,33 @@ h1 {
   line-height: 1.3;
 }
 
-.step-body {
+.plain {
   margin: 0 0 12px;
-  color: #d5deec;
-  line-height: 1.6;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(240, 180, 41, 0.12);
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  color: #ffe7ad;
+  line-height: 1.55;
   font-size: 15px;
 }
 
-.step-code {
+.step-body {
   margin: 0 0 12px;
+  color: #d5deec;
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+.code-fold { margin: 0 0 12px; }
+.code-fold summary {
+  cursor: pointer;
+  color: #c5d2e6;
+  font-size: 13px;
+}
+
+.step-code {
+  margin: 8px 0 0;
   padding: 12px;
   border-radius: 12px;
   background: #070c16;

@@ -25,8 +25,8 @@
         <h1>트랜잭션 흐름 랩</h1>
       </div>
       <p class="lede">
-        재고 차감과 주문 저장은 둘 다 되거나, 둘 다 취소되어야 합니다.
-        왼쪽에서 기본 흐름을 본 뒤, 전파 속성에서 주문·결제·이력·외부 호출이 어떻게 묶이는지 단계로 넘겨 보세요.
+        책 1권을 주문할 때 재고와 주문은 같이 성공하거나 같이 취소되어야 합니다.
+        처음이면 왼쪽 <b>1. 먼저 개념</b> 세 개만 순서대로 보세요. 스프링과 전파는 그 다음입니다.
       </p>
     </header>
 
@@ -53,17 +53,33 @@
       <aside class="dossier" aria-live="polite">
         <p id="kicker" class="kicker"></p>
         <h2 id="step-title"></h2>
+        <p id="step-plain" class="plain" hidden></p>
         <p id="step-body" class="step-body"></p>
-        <pre id="step-code" class="step-code"><code></code></pre>
+        <details id="code-fold" class="code-fold">
+          <summary>코드로 보면</summary>
+          <pre id="step-code" class="step-code"><code></code></pre>
+        </details>
         <p id="step-callout" class="callout" hidden></p>
         <div id="acid" class="acid" aria-label="ACID"></div>
         <details class="acid-note">
-          <summary>ACID를 이 주문 예시에 대입하면</summary>
+          <summary>단어가 낯설면</summary>
           <ul>
-            <li><b>원자성</b> 재고 차감과 주문 저장은 한 묶음입니다. 주문 저장이 실패하면 재고 차감도 사라집니다.</li>
-            <li><b>일관성</b> 재고가 0보다 작아지거나, 주문만 있고 재고는 그대로인 상태를 남기지 않습니다.</li>
-            <li><b>격리</b> 커밋 전에는 다른 손님의 조회에 이 변경이 섞이지 않는 것이 일반적입니다.</li>
-            <li><b>지속성</b> 커밋이 끝나면 애플리케이션이 멈춰도 주문 기록은 데이터베이스에 남습니다.</li>
+            <li><b>트랜잭션</b> 여러 작업을 하나로 묶는 것. 전부 저장하거나 전부 취소한다.</li>
+            <li><b>커밋</b> 임시였던 변경을 이제 진짜로 확정한다.</li>
+            <li><b>롤백</b> 임시 변경을 없었던 일로 되돌린다.</li>
+            <li><b>자동 커밋</b> SQL 한 줄이 끝나는 즉시 저장. 뒤가 실패해도 앞 줄은 못 돌린다.</li>
+            <li><b>커넥션</b> 프로그램이 데이터베이스와 대화하려고 빌리는 연결. 다 쓰면 보관함(풀)에 돌려준다.</li>
+            <li><b>프록시</b> 스프링이 서비스 앞에 세운 문지기. 진짜 코드보다 먼저 트랜잭션을 연다.</li>
+            <li><b>전파</b> 이미 묶음이 열려 있을 때, 다음 메서드가 그 묶음에 탈지 새로 열지를 정하는 규칙.</li>
+          </ul>
+        </details>
+        <details class="acid-note">
+          <summary>ACID를 이 주문에 대입하면</summary>
+          <ul>
+            <li><b>원자성</b> 재고와 주문은 한 묶음이다. 주문이 실패하면 재고 차감도 사라진다.</li>
+            <li><b>일관성</b> 재고만 줄고 주문은 없는 이상한 상태를 남기지 않는다.</li>
+            <li><b>격리</b> 저장 전에는 다른 손님이 이 변경을 못 보는 것이 보통이다.</li>
+            <li><b>지속성</b> 저장이 끝나면 서버가 꺼져도 주문은 남아 있다.</li>
           </ul>
         </details>
       </aside>

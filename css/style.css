@@ -271,7 +271,47 @@ h1 {
 .pin b, .pin span { display: block; }
 .pin b { font-size: 12px; letter-spacing: -0.02em; }
 .pin span { margin-top: 2px; color: #9aabc4; font-size: 10px; }
-.pin.is-now { border-color: rgba(240, 180, 41, 0.9); }
+.pin.lane-web { border-color: rgba(126, 182, 255, 0.85); }
+.pin.lane-app { border-color: rgba(183, 148, 246, 0.85); }
+.pin.lane-spring { border-color: rgba(240, 180, 41, 0.85); }
+.pin.lane-db { border-color: rgba(47, 211, 197, 0.85); }
+.pin.lane-out { border-color: rgba(255, 139, 106, 0.95); }
+
+.legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(8, 12, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d5deec;
+  font-size: 11px;
+}
+.legend span.is-now { border-color: rgba(240, 180, 41, 0.9); color: #fff; }
+.legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.legend .lane-web i { background: #7eb6ff; }
+.legend .lane-app i { background: #b794f6; }
+.legend .lane-spring i { background: #f0b429; }
+.legend .lane-db i { background: #2fd3c5; }
+.legend .lane-out i { background: #ff8b6a; }
+.pin.is-now { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
 .pin.is-danger { border-color: rgba(255, 109, 122, 0.9); }
 .pin.is-ok { border-color: rgba(47, 211, 197, 0.9); }
 .pin.is-future { opacity: 0.45; }

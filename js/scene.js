@@ -2,7 +2,21 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 
-const LAYER_Z = { web: -0.85, app: -0.25, spring: 0.3, db: 0.9 };
+const LAYER_Z = { web: -0.9, app: -0.2, spring: 0.45, db: 1.05, out: 1.75 };
+const LAYER_COLOR = {
+  web: 0x7eb6ff,
+  app: 0xb794f6,
+  spring: 0xf0b429,
+  db: 0x2fd3c5,
+  out: 0xff8b6a,
+};
+const LAYER_NAME = {
+  web: "화면",
+  app: "우리 서버",
+  spring: "스프링",
+  db: "우리 DB",
+  out: "외부 서비스",
+};
 const TONES = {
   work: 0xf0b429,
   ok: 0x2fd3c5,
@@ -66,6 +80,10 @@ export function createStage(container) {
   grid.position.y = -0.72;
   scene.add(grid);
 
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  container.appendChild(legend);
+
   const root = new THREE.Group();
   scene.add(root);
 
@@ -99,6 +117,7 @@ export function createStage(container) {
   let stations = [];
   let curves = [];
   let segments = [];
+  let lanes = [];
   let shown = 0;
   let target = 0;
   let tone = "work";
@@ -119,6 +138,7 @@ export function createStage(container) {
     stations = [];
     curves = [];
     segments = [];
+    lanes = [];
   }
 
   function layout(steps) {
@@ -147,27 +167,48 @@ export function createStage(container) {
 
   function setScenario(steps) {
     clearRoot();
+    legend.replaceChildren();
     const points = layout(steps);
+    const used = [];
     points.forEach((pos, i) => {
       const step = steps[i];
+      const layer = LAYER_Z[step.layer] != null ? step.layer : "app";
+      if (!used.includes(layer)) used.push(layer);
       const mesh = shapeMesh(step.shape);
       mesh.position.copy(pos);
       mesh.userData.index = i;
+      mesh.userData.layer = layer;
       const pad = new THREE.Mesh(
         new THREE.CircleGeometry(0.46, 24),
-        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 })
+        new THREE.MeshBasicMaterial({ color: LAYER_COLOR[layer], transparent: true, opacity: 0.22 })
       );
       pad.rotation.x = -Math.PI / 2;
       pad.position.set(pos.x, -0.7, pos.z);
       const el = document.createElement("div");
-      el.className = "pin is-future";
+      el.className = `pin is-future lane-${layer}`;
       el.innerHTML = `<b>${step.name}</b><span>${step.sub}</span>`;
       const label = new CSS2DObject(el);
       label.position.set(0, 0.55, 0);
       mesh.add(label);
       root.add(mesh);
       root.add(pad);
-      stations.push({ mesh, pad, el, pos });
+      stations.push({ mesh, pad, el, pos, layer });
+    });
+
+    const span = Math.max(1, points.length - 1) * 2.28;
+    const midX = points.reduce((sum, p) => sum + p.x, 0) / Math.max(points.length, 1);
+    used.forEach((layer) => {
+      const lane = new THREE.Mesh(
+        new THREE.BoxGeometry(span + 2.2, 0.025, 1.05),
+        new THREE.MeshBasicMaterial({ color: LAYER_COLOR[layer], transparent: true, opacity: 0.16 })
+      );
+      lane.position.set(midX, -0.69, LAYER_Z[layer]);
+      root.add(lane);
+      const chip = document.createElement("span");
+      chip.className = `lane-${layer}`;
+      chip.innerHTML = `<i></i>${LAYER_NAME[layer]}`;
+      legend.appendChild(chip);
+      lanes.push({ layer, chip });
     });
 
     for (let i = 0; i < points.length - 1; i += 1) {
@@ -221,16 +262,23 @@ export function createStage(container) {
       const mat = st.mesh.material;
       const future = i > Math.round(target);
       const now = i === Math.round(target);
-      mat.emissive.setHex(now ? color : future ? 0x101722 : 0x1d4a55);
-      mat.color.setHex(now ? 0x3a465c : 0x243044);
-      mat.emissiveIntensity = now ? 0.7 : 0.45;
-      st.mesh.scale.setScalar(now ? 1.12 : 1);
-      st.el.className = `pin${now ? " is-now" : ""}${future ? " is-future" : ""}${now && tone === "danger" ? " is-danger" : ""}${now && tone === "ok" ? " is-ok" : ""}`;
+      const lane = LAYER_COLOR[st.layer] || 0x243044;
+      mat.color.setHex(lane);
+      mat.emissive.setHex(now ? color : lane);
+      mat.emissiveIntensity = now ? 0.9 : future ? 0.06 : 0.32;
+      st.mesh.scale.setScalar(now ? 1.16 : 1);
+      st.el.className = `pin lane-${st.layer}${now ? " is-now" : ""}${future ? " is-future" : ""}${now && tone === "danger" ? " is-danger" : ""}${now && tone === "ok" ? " is-ok" : ""}`;
+    });
+    lanes.forEach((lane) => {
+      lane.chip.classList.toggle("is-now", stations[Math.round(target)]?.layer === lane.layer);
     });
     segments.forEach((tube, i) => {
       const lit = target > i;
-      tube.material.emissive.setHex(lit ? (TONES[tone] || TONES.work) : 0x0c121c);
-      tube.material.emissiveIntensity = lit ? 0.35 : 0.15;
+      const dest = stations[i + 1];
+      const lane = dest ? LAYER_COLOR[dest.layer] : 0x31445d;
+      tube.material.color.setHex(lit ? lane : 0x31445d);
+      tube.material.emissive.setHex(lit ? lane : 0x0c121c);
+      tube.material.emissiveIntensity = lit ? 0.45 : 0.12;
     });
   }
 

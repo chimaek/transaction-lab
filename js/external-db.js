@@ -24,7 +24,7 @@ export const externalDbScenarios = [
       {
         name: "카드사",
         sub: "승인 요청",
-        layer: "web",
+        layer: "out",
         shape: "sphere",
         title: "우리 서버가 카드사에 승인을 부탁한다",
         plain: "손님 카드 결제는 우리 데이터베이스가 아니라, 카드사라는 다른 회사 서비스에 물어봐야 끝납니다.",
@@ -43,7 +43,7 @@ export const externalDbScenarios = [
       {
         name: "무응답",
         sub: "카드사 지연",
-        layer: "app",
+        layer: "out",
         shape: "octa",
         title: "카드사가 승인도 거절도 주지 않는다",
         plain: "요청은 나갔는데 결과가 안 옵니다. 우리 코드는 아직 다음 줄로 가지 못합니다.",
@@ -52,7 +52,7 @@ export const externalDbScenarios = [
         stats: board(
           row("카드사", "무응답", "원인 불명", "bad"),
           row("승인 요청", "대기", "결과 없음", "hot"),
-          row("우리 주문 DB", "커넥션 점유", "트랜잭션 안이면", "bad"),
+          row("우리 주문 DB", "아직 그대로", "이 호출은 묶음 밖", "good"),
           row("제한 시간", "없음", "기본이 무한일 수 있음", "bad")
         ),
         acid: [],
@@ -61,7 +61,7 @@ export const externalDbScenarios = [
       {
         name: "일꾼 고갈",
         sub: "줄이 멈춤",
-        layer: "spring",
+        layer: "app",
         shape: "box",
         title: "기다리던 일꾼이 다른 손님을 못 받는다",
         plain: "결제 한 건이 끝나지 않으면, 그 요청을 처리하던 스레드가 다른 일을 못 합니다.",
@@ -130,7 +130,7 @@ export const externalDbScenarios = [
       {
         name: "승인 요청",
         sub: "POST",
-        layer: "web",
+        layer: "out",
         shape: "sphere",
         title: "승인을 보내되 5초만 결과를 기다린다",
         plain: "요청은 나갑니다. 5초 안에 승인이나 거절이 없으면 그 호출은 실패입니다.",
@@ -195,7 +195,7 @@ export const externalDbScenarios = [
       {
         name: "첫 실패",
         sub: "일시 오류",
-        layer: "web",
+        layer: "out",
         shape: "octa",
         title: "카드사가 잠깐 바쁘다는 응답을 준다",
         plain: "카드사는 살아 있습니다. 이번 승인만 서버가 바빠서 거절이 아니라 ‘잠시 뒤’라는 실패가 왔습니다.",
@@ -235,7 +235,7 @@ export const externalDbScenarios = [
       {
         name: "같은 키",
         sub: "한 번만 승인",
-        layer: "web",
+        layer: "out",
         shape: "cylinder",
         title: "다시 보낼 때는 같은 결제 키를 붙인다",
         plain: "주문번호 1001이라는 같은 키를 붙이면, 카드사는 두 번째 요청을 새 결제로 받지 않습니다.",
@@ -324,7 +324,7 @@ return paymentFallback(orderId);`,
       {
         name: "시험",
         sub: "소수만",
-        layer: "web",
+        layer: "out",
         shape: "torus",
         title: "10초 뒤에는 세 번만 살아났는지 물어본다",
         plain: "영원히 끊지 않습니다. 잠시 뒤 적은 수만 보내서 카드사가 돌아왔는지 확인합니다.",
@@ -433,7 +433,7 @@ POST /orders/pay   → 잠시 후 안내`,
       {
         name: "복구",
         sub: "다시 승인",
-        layer: "web",
+        layer: "db",
         shape: "cone",
         title: "카드사가 돌아오면 안내는 끝내고 승인을 다시 받는다",
         plain: "시험 요청이 성공하면, 손님은 다시 결제를 진행할 수 있습니다. 안내 문구에 멈춰 있지 않습니다.",
@@ -486,7 +486,7 @@ COMMIT;`,
       {
         name: "카드사 연결 고갈",
         sub: "3개 모두 대기",
-        layer: "web",
+        layer: "out",
         shape: "octa",
         title: "승인 세 건이 카드사 응답을 기다리며 연결을 채운다",
         plain: "카드사용 연결 3개가 모두 느린 승인에 잡혀 있습니다. 네 번째 결제는 2초만 기다리다 실패합니다.",
